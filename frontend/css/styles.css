@@ -84,6 +84,7 @@ form input, button {
 form div {
   margin-top: 10px;
   color: #a93671;
+  word-wrap: break-word;
 }
 
 button {
