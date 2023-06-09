@@ -58,7 +58,7 @@ body {
   }
 }
 
-.d-none {
+.d-none, .d-none-id {
   display: none;
 }
 

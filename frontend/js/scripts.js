@@ -1,4 +1,4 @@
-// get elements
+// get DOM elements
 const lis = document.querySelectorAll('li');
 const form = document.querySelector('form');
 const formTitle = document.querySelector('.formTitle');
@@ -23,10 +23,20 @@ lis.forEach(li => {
       break;
       case '3':
         formTitle.innerHTML = "Ver mi usuario";
-        inputs[0].classList.add('d-none');
-        inputs[1].classList.add('d-none');
+        inputsD_none();
         form.classList.add('current');
-        form.setAttribute('fetchMethod', 'get');
+      break;
+      case '4':
+        formTitle.innerHTML = "Ver todos los usuarios";
+        inputsD_none();
+        form.className = '';
+      break;
+      case '5':
+        formTitle.innerHTML = "Ver usuario por id";
+        inputsD_none();
+        inputs[2].classList.remove('d-none-id');
+        inputs[2].classList.remove('d-none');
+        form.className = '';
       break;
     }
   });
@@ -35,10 +45,9 @@ lis.forEach(li => {
 // form submitted and fetch 
 form.addEventListener('submit', e => {
   e.preventDefault();
-  console.log(validateForm());
-  if (validateForm()) {
+  const fetchMethod = form.getAttribute('fetchMethod');
+  if (validateForm(fetchMethod)) {
     const apiOption = e.target.className;
-    const fetchMethod = form.getAttribute('fetchMethod');
     let fetchOptions = {};
     // fetch opcions obj
     switch (fetchMethod) {
@@ -51,7 +60,7 @@ form.addEventListener('submit', e => {
             password: inputs[1].value 
           })
         }
-        break;
+      break;
       case 'get': 
         const token = localStorage.getItem("token");
         fetchOptions = {
@@ -61,19 +70,13 @@ form.addEventListener('submit', e => {
             "Authorization": "Bearer " + token
           },
         }
+      break;
     }
-    
+    // fetching form
     fetch('http://127.0.0.1:3000/users/' + apiOption, fetchOptions)
     .then(res => res.json())
     .then(data => {
-      if (data.token) {
-        msgDiv.innerHTML = "Login correcto. <br><br> Token: " + data.token;
-        localStorage.setItem("token", data.token);
-      } else if (data.message) {
-        msgDiv.innerHTML = data.message;
-      } else {
-        msgDiv.innerHTML = `id: ${data.id}, username: ${data.username}`; 
-      }
+      fetchResponse(data) 
     })
     .catch( error => {
       msgDiv.innerHTML = "Ha ocurrido un error en la API. " + error;
@@ -81,25 +84,80 @@ form.addEventListener('submit', e => {
   }
 });
 
+// fetch response
+function fetchResponse(data) {
+  msgDiv.innerHTML = '';
+  if (data.token) { // login
+    msgDiv.innerHTML = "Login correcto. <br><br> Token: " + data.token;
+    localStorage.setItem("token", data.token);
+  } else if (data.message) { // messages
+    msgDiv.innerHTML = data.message;
+  } else if (data.length >= 0) { // get all users
+    data.forEach(user => {
+      msgDiv.innerHTML += `
+      id: ${user.id} <br> 
+      username: ${user.username} <br> 
+      created At: ${dateFormat(user.createdAt)} <br> 
+      updated At: ${dateFormat(user.updatedAt)} <br><br>
+    `;
+    });
+  } else { // get current user
+      msgDiv.innerHTML = `
+      id: ${data.id} <br> 
+      username: ${data.username} <br> 
+      created At: ${dateFormat(data.createdAt)} <br> 
+      updated At: ${dateFormat(data.updatedAt)} 
+    `;
+  }
+}
+
 // reset form
 function resetForm() {
   form.reset();
-  form.className, msgDiv.innerHTML = '';
+  form.className = '';
+  msgDiv.innerHTML = '';
   inputs.forEach(input => {
     input.classList.remove('borderValidation');
     input.classList.remove('d-none');
   });
 }
 
+// hide form inputs
+function inputsD_none() {
+  inputs.forEach(input => {
+    input.classList.add('d-none');
+  });
+}
+
 // validate form
-function validateForm() {
+function validateForm(fetchMethod) {
+  let validation = true;
+  if (fetchMethod === 'get') {
+    return validation;
+  } 
   inputs.forEach(input => {
     if (input.value.length === 0) { 
       input.classList.add('borderValidation');
-      return false;
+      validation = false
     } else {
       input.classList.remove('borderValidation');
     }
   });
- // return true;
+  return validation;
+}
+
+// timestamp mysql to dd/mm/yyyy 
+function dateFormat(inputDate) {
+  inputDate = new Date(inputDate);
+  let date, month, year;
+  date = inputDate.getDate();
+  month = inputDate.getMonth() + 1;
+  year = inputDate.getFullYear();
+  date = date
+    .toString()
+    .padStart(2, '0');
+  month = month
+    .toString()
+    .padStart(2, '0');
+  return `${date}/${month}/${year}`;
 }
